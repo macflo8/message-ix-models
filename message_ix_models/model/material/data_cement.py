@@ -344,8 +344,10 @@ def gen_data_cement(scenario, dry_run=False):
 
     # Create external demand param
     parname = "demand"
-    df = material_demand_calc.derive_demand("cement", scenario, old_gdp=False, ssp=ssp)
-    results[parname].append(df)
+    df_demand = material_demand_calc.derive_demand(
+        "cement", scenario, old_gdp=False, ssp=ssp
+    )
+    results[parname].append(df_demand)
 
     # Add CCS as addon
     parname = "addon_conversion"
@@ -358,4 +360,37 @@ def gen_data_cement(scenario, dry_run=False):
     # Concatenate to one data frame per parameter
     results = {par_name: pd.concat(dfs) for par_name, dfs in results.items()}
 
+    results["initial_new_capacity_up"] = pd.concat(
+        [
+            calculate_ini_new_cap(
+                df_demand=df_demand, technology="clinker_dry_ccs_cement"
+            ),
+            calculate_ini_new_cap(
+                df_demand=df_demand, technology="clinker_wet_ccs_cement"
+            ),
+        ]
+    )
+
     return results
+
+
+def calculate_ini_new_cap(df_demand, technology):
+    """
+    Derive initial_new_capacity_up parametrization for CCS based on cement demand
+    projection
+    Parameters
+    ----------
+    df_demand: pd.DataFrame
+        DataFrame containing "demand" MESSAGEix parametrization
+    technology: str
+        name of CCS technology to be parametrized
+    Returns
+    -------
+    DataFrame formatted to "initial_new_capacity_up" columns
+    """
+    CLINKER_RATIO = 0.579
+    SCALER = 0.005
+    df_demand["value"] *= CLINKER_RATIO * SCALER
+    df_demand = df_demand.rename(columns={"node": "node_loc", "year": "year_vtg"})
+    df_demand["technology"] = technology
+    return make_df("initial_new_capacity_up", **df_demand)
