@@ -351,7 +351,9 @@ def gen_data_cement(scenario, dry_run=False):
 
     # Create external demand param
     parname = "demand"
-    df_demand = material_demand_calc.derive_demand("cement", scenario, ssp=ssp)
+    df_demand = material_demand_calc.derive_demand(
+        "cement", scenario, old_gdp=False, ssp=ssp
+    )
     results[parname].append(df_demand)
 
     # Add CCS as addon
