@@ -1633,20 +1633,19 @@ def add_coal_lowerbound_2020(sc):
     )
 
 
-def add_cement_bounds_2020(sc):
+def add_cement_bounds_2020(sc, temp):
     """Set lower and upper bounds for gas and oil as a calibration for 2020"""
 
     final_resid = pd.read_csv(
         package_data_path("material", "other", "residual_industry_2019.csv")
     )
-
     input_cement_foil = sc.par(
         "input",
         filters={
             "technology": "furnace_foil_cement",
             "year_vtg": "2020",
             "year_act": "2020",
-            "mode": "high_temp",
+            "mode": temp,
         },
     )
 
@@ -1656,7 +1655,7 @@ def add_cement_bounds_2020(sc):
             "technology": "furnace_loil_cement",
             "year_vtg": "2020",
             "year_act": "2020",
-            "mode": "high_temp",
+            "mode": temp,
         },
     )
 
@@ -1666,7 +1665,7 @@ def add_cement_bounds_2020(sc):
             "technology": "furnace_gas_cement",
             "year_vtg": "2020",
             "year_act": "2020",
-            "mode": "high_temp",
+            "mode": temp,
         },
     )
 
@@ -1676,7 +1675,7 @@ def add_cement_bounds_2020(sc):
             "technology": "furnace_biomass_cement",
             "year_vtg": "2020",
             "year_act": "2020",
-            "mode": "high_temp",
+            "mode": temp,
         },
     )
 
@@ -1686,7 +1685,7 @@ def add_cement_bounds_2020(sc):
             "technology": "furnace_coal_cement",
             "year_vtg": "2020",
             "year_act": "2020",
-            "mode": "high_temp",
+            "mode": temp,
         },
     )
 
@@ -1853,7 +1852,7 @@ def add_cement_bounds_2020(sc):
                 "node_loc": n,
                 "technology": "furnace_methanol_cement",
                 "year_act": years,
-                "mode": "high_temp",
+                "mode": temp,
                 "time": "year",
                 "value": 0,
                 "unit": "???",
@@ -1869,7 +1868,7 @@ def add_cement_bounds_2020(sc):
                 "node_loc": n,
                 "technology": "furnace_ethanol_cement",
                 "year_act": years,
-                "mode": "high_temp",
+                "mode": temp,
                 "time": "year",
                 "value": 0,
                 "unit": "???",
