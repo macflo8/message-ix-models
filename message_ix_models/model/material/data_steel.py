@@ -426,7 +426,7 @@ def gen_data_steel(scenario, dry_run=False):
     # Techno-economic assumptions
     # TEMP: now add cement sector as well
     # => Need to separate those since now I have get_data_steel and cement
-    data_steel = read_sector_data(scenario, "steel")
+    data_steel = read_sector_data(scenario, "steel", ssp)
     # Special treatment for time-dependent Parameters
     data_steel_ts = read_timeseries(scenario, "steel_cement", ssp, context.datafile)
     data_steel_rel = read_rel(scenario, "steel_cement", ssp, context.datafile)
@@ -524,5 +524,14 @@ def gen_data_steel(scenario, dry_run=False):
     results = {par_name: pd.concat(dfs) for par_name, dfs in results.items()}
 
     maybe_remove_water_tec(scenario, results)
+
+    if ssp == "SSP1":
+        df_tmp = results["relation_activity"]
+        df_tmp = df_tmp[
+            (df_tmp["relation"] == "minimum_recycling_steel")
+            & (df_tmp["technology"] == "total_EOL_steel")
+        ]
+        df_tmp = df_tmp[df_tmp["year_rel"] >= 2030]
+        df_tmp["value"] = -0.7
 
     return results
