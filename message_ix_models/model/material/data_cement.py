@@ -166,9 +166,9 @@ def gen_data_cement(scenario, dry_run=False):
     s_info = ScenarioInfo(scenario)
     context.datafile = "Global_steel_cement_MESSAGE.xlsx"
 
-    data_cement = read_sector_data(scenario, "cement")
+    data_cement = read_sector_data(scenario, "cement", ssp)
     # Special treatment for time-dependent Parameters
-    data_cement_ts = read_timeseries(scenario, "steel_cement", context.datafile)
+    data_cement_ts = read_timeseries(scenario, "steel_cement", ssp, context.datafile)
     tec_ts = set(data_cement_ts.technology)  # set of tecs with var_cost
 
     # List of data frames, to be concatenated together at end

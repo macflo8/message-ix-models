@@ -1882,7 +1882,7 @@ def add_cement_bounds_2020(sc, temp):
     sc.commit("added lower and upper bound for fuels for cement 2020.")
 
 
-def read_sector_data(scenario: message_ix.Scenario, sectname: str) -> pd.DataFrame:
+def read_sector_data(scenario: message_ix.Scenario, sectname: str, ssp: str) -> pd.DataFrame:
     """
     Read sector data for industry with sectname
 
@@ -1915,7 +1915,7 @@ def read_sector_data(scenario: message_ix.Scenario, sectname: str) -> pd.DataFra
 
     # data_df = data_steel_china.append(data_cement_china, ignore_index=True)
     data_df = pd.read_excel(
-        package_data_path("material", "steel_cement", context.datafile),
+        package_data_path("material", "steel_cement", ssp, context.datafile),
         sheet_name=sheet_n,
     )
 
