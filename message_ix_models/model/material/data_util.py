@@ -1876,7 +1876,7 @@ def add_cement_bounds_2020(sc, temp):
 
 
 def read_sector_data(
-    scenario: message_ix.Scenario, sectname: str, file: str
+    scenario: message_ix.Scenario, sectname: str, ssp: str, file: str
 ) -> pd.DataFrame:
     """
     Read sector data for industry with sectname
@@ -1907,7 +1907,7 @@ def read_sector_data(
 
     # data_df = data_steel_china.append(data_cement_china, ignore_index=True)
     data_df = pd.read_excel(
-        package_data_path("material", sectname, file),
+        package_data_path("material", sectname, ssp, file),
         sheet_name=sheet_n,
     )
 
