@@ -370,10 +370,10 @@ def gen_data_cement(scenario, dry_run=False):
     results["initial_new_capacity_up"] = pd.concat(
         [
             calculate_ini_new_cap(
-                df_demand=df_demand, technology="clinker_dry_ccs_cement"
+                df_demand=df_demand.copy(deep=True), technology="clinker_dry_ccs_cement"
             ),
             calculate_ini_new_cap(
-                df_demand=df_demand, technology="clinker_wet_ccs_cement"
+                df_demand=df_demand.copy(deep=True), technology="clinker_wet_ccs_cement"
             ),
         ]
     )
