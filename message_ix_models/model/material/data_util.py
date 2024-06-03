@@ -1634,7 +1634,7 @@ def add_coal_lowerbound_2020(sc):
 
     # add parameter dataframes to ixmp
     sc.add_par("bound_activity_lo", bound_coal)
-    sc.add_par("bound_activity_lo", bound_cement_coal)
+    # sc.add_par("bound_activity_lo", bound_cement_coal)
     sc.add_par("bound_activity_lo", bound_residual_electricity)
 
     # commit scenario to ixmp backend
@@ -1853,7 +1853,7 @@ def add_cement_bounds_2020(sc, temp):
     # add parameter dataframes to ixmp
     sc.add_par("bound_activity_up", bound_cement_loil)
     sc.add_par("bound_activity_up", bound_cement_foil)
-    sc.add_par("bound_activity_lo", bound_cement_gas)
+    # sc.add_par("bound_activity_lo", bound_cement_gas)
     sc.add_par("bound_activity_up", bound_cement_gas)
     sc.add_par("bound_activity_up", bound_cement_biomass)
     sc.add_par("bound_activity_up", bound_cement_coal)
