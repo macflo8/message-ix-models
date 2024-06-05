@@ -1,8 +1,4 @@
 # Configuration for message_data.model.material
-#
-# NB these values are currently for the nitrogen fertilizer materials
-#    accounting. Different sets can be created once there are 2+ different
-#    categories of materials.
 
 
 common:
@@ -163,6 +159,7 @@ generic:
     - fc_h2_resins
     - solar_resins
     - dheat_resins
+
   mode:
     add:
     - low_temp
@@ -260,7 +257,6 @@ petro_chemicals:
     # Any representation of refinery.
     - ref_hil
     - ref_lol
-    - coal_fs
     - coal_fs
     - ethanol_fs
     - gas_fs
@@ -435,7 +431,6 @@ aluminum:
     - dummy_end_of_life_2
     - dummy_end_of_life_3
 
-
   technology:
     add:
     - soderberg_aluminum
@@ -479,11 +474,13 @@ fertilizer:
     - NH3
     - Fertilizer Use|Nitrogen
     - wastewater
+
   level:
     add:
     - secondary_material
     - final_material
     - wastewater
+
   technology:
     require:
     - h2_bio_ccs  # Reference for vent-to-storage ratio
@@ -505,6 +502,7 @@ fertilizer:
     - gas_NH3_ccs
     - coal_NH3_ccs
     - fueloil_NH3_ccs
+
   relation:
     add:
       - NH3_trd_cap
