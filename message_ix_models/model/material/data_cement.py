@@ -354,12 +354,12 @@ def gen_data_cement(scenario, dry_run=False):
     technology_1 = ["clinker_dry_cement"]
     df_1 = make_df(
         parname, mode="M1", type_addon="dry_ccs_cement", value=1, unit="-", **common
-    ).pipe(broadcast, node=nodes, technology= technology_1)
+    ).pipe(broadcast, node=nodes, technology=technology_1)
 
     technology_2 = ["clinker_wet_cement"]
     df_2 = make_df(
         parname, mode="M1", type_addon="wet_ccs_cement", value=1, unit="-", **common
-    ).pipe(broadcast, node=nodes, technology= technology_2)
+    ).pipe(broadcast, node=nodes, technology=technology_2)
 
     results[parname].append(df_1)
     results[parname].append(df_2)
