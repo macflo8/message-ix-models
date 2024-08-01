@@ -2,11 +2,6 @@ import logging
 from typing import Mapping
 
 import message_ix
-import pandas as pd
-from ixmp.utils import maybe_check_out, maybe_commit
-from message_ix import Scenario
-from message_ix_models.model.material.util import read_config
-from sdmx.model import Code
 
 from message_ix_models.model.build import apply_spec
 from message_ix_models.model.material.data_aluminum import gen_data_aluminum
@@ -21,16 +16,21 @@ from message_ix_models.model.material.data_util import (
     add_ccs_technologies,
     add_cement_bounds_2020,
     add_coal_lowerbound_2020,
-    add_elec_i_ini_act,
     add_elec_lowerbound_2020,
     add_emission_accounting,
     add_new_ind_hist_act,
+    calibrate_for_SSPs,
+    maybe_add_water_tecs,
     modify_baseyear_bounds,
     modify_demand_and_hist_activity,
     modify_industry_demand,
 )
 from message_ix_models.model.material.util import read_config
-from message_ix_models.util import add_par_data, identify_nodes, package_data_path
+from message_ix_models.util import (
+    add_par_data,
+    identify_nodes,
+    package_data_path,
+)
 from message_ix_models.util.compat.message_data import (
     calibrate_UE_gr_to_demand,
     calibrate_UE_share_constraints,
@@ -39,78 +39,16 @@ from message_ix_models.util.compat.message_data import (
     manual_updates_ENGAGE_SSP2_v417_to_v418 as engage_updates,
 )
 from message_ix_models.util.scenarioinfo import ScenarioInfo
-from message_ix_models.util import add_par_data, strip_par_data, private_data_path
-from message_ix_models.util.scenarioinfo import ScenarioInfo, Spec
-from message_ix_models.model.material.data_aluminum import gen_data_aluminum
-from message_ix_models.model.material.data_ammonia_new import gen_all_NH3_fert
-from message_ix_models.model.material.data_cement import gen_data_cement
-from message_ix_models.model.material.data_generic import gen_data_generic
-from message_ix_models.model.material.data_methanol_new import gen_data_methanol_new
-from message_ix_models.model.material.data_petro import gen_data_petro_chemicals
-from message_ix_models.model.material.data_power_sector import gen_data_power_sector
-from message_ix_models.model.material.data_steel import gen_data_steel
-from message_ix_models.model.material.data_util import (
-    add_ccs_technologies,
-    add_cement_bounds_2020,
-    add_coal_lowerbound_2020,
-    add_elec_lowerbound_2020,
-    add_emission_accounting,
-    modify_baseyear_bounds,
-    modify_demand_and_hist_activity,
-    modify_industry_demand,
-    maybe_add_water_tecs,
-    add_new_ind_hist_act,
-)
-from message_ix_models.util.compat.message_data import (
-    calibrate_UE_gr_to_demand,
-    calibrate_UE_share_constraints,
-)
-from message_ix_models.util.compat.message_data import (
-    manual_updates_ENGAGE_SSP2_v417_to_v418 as engage_updates,
-)
-from .data_util import calibrate_for_SSPs
-
 
 log = logging.getLogger(__name__)
 
-DATA_FUNCTIONS_1 = [
+DATA_FUNCTIONS = [
     # gen_data_buildings,
     gen_data_methanol_new,
     gen_all_NH3_fert,
     # gen_data_ammonia, ## deprecated module!
     gen_data_generic,
     gen_data_steel,
-]
-DATA_FUNCTIONS_2 = [
-    gen_data_cement,
-    gen_data_petro_chemicals,
-    gen_data_power_sector,
-    gen_data_aluminum,
-]
-
-# add as needed/implemented
-SPEC_LIST = [
-    "generic",
-    "common",
-    "steel",
-    "cement",
-    "aluminum",
-    "petro_chemicals",
-    "buildings",
-    "power_sector",
-    "fertilizer",
-    "methanol",
-]
-
-DATA_FUNCTIONS_1 = [
-    # gen_data_buildings,
-    gen_data_methanol_new,
-    gen_all_NH3_fert,
-    # gen_data_ammonia, ## deprecated module!
-    gen_data_generic,
-    gen_data_steel,
-]
-DATA_FUNCTIONS_2 = [
     gen_data_cement,
     gen_data_petro_chemicals,
     gen_data_power_sector,
@@ -133,13 +71,12 @@ SPEC_LIST = [
 
 
 # Try to handle multiple data input functions from different materials
-def add_data_1(scenario, dry_run=False):
+def add_data(scenario, dry_run=False):
     """Populate `scenario` with MESSAGEix-Materials data."""
     # Information about `scenario`
     info = ScenarioInfo(scenario)
 
-    # Check for two "node" values for global data, e.g. in
-    # ixmp://ene-ixmp/CD_Links_SSP2_v2.1_clean/baseline
+    # Check for two "node" values for global data
     if {"World", "R11_GLB"} < set(info.set["node"]):
         log.warning("Remove 'R11_GLB' from node list for data generation")
         info.set["node"].remove("R11_GLB")
@@ -147,40 +84,10 @@ def add_data_1(scenario, dry_run=False):
         log.warning("Remove 'R12_GLB' from node list for data generation")
         info.set["node"].remove("R12_GLB")
 
-    for func in DATA_FUNCTIONS_1 + DATA_FUNCTIONS_2:
+    for func in DATA_FUNCTIONS:
         # Generate or load the data; add to the Scenario
         log.info(f"from {func.__name__}()")
         data = func(scenario)
-        # if "SSP_dev" in scenario.model:
-        #     if "emission_factor" in list(data.keys()):
-        #         data.pop("emission_factor")
-        add_par_data(scenario, data, dry_run=dry_run)
-
-    log.info("done")
-
-
-def add_data_2(scenario, dry_run=False):
-    """Populate `scenario` with MESSAGEix-Materials data."""
-    # Information about `scenario`
-    info = ScenarioInfo(scenario)
-
-    # Check for two "node" values for global data, e.g. in
-    # ixmp://ene-ixmp/CD_Links_SSP2_v2.1_clean/baseline
-    if {"World", "R11_GLB"} < set(info.set["node"]):
-        log.warning("Remove 'R11_GLB' from node list for data generation")
-        info.set["node"].remove("R11_GLB")
-    if {"World", "R12_GLB"} < set(info.set["node"]):
-        log.warning("Remove 'R12_GLB' from node list for data generation")
-        info.set["node"].remove("R12_GLB")
-
-    for func in DATA_FUNCTIONS_2:
-        # Generate or load the data; add to the Scenario
-        log.info(f"from {func.__name__}()")
-        # TODO: remove this once emission_factors are back in SSP_dev
-        data = func(scenario)
-        # if "SSP_dev" in scenario.model:
-        #     if "emission_factor" in list(data.keys()):
-        #         data.pop("emission_factor")
         add_par_data(scenario, data, dry_run=dry_run)
 
     log.info("done")
@@ -197,7 +104,7 @@ def build(
 
     maybe_add_water_tecs(scenario)
 
-    apply_spec(scenario, spec, add_data_1, fast=True)  # dry_run=True
+    apply_spec(scenario, spec, add_data, fast=True)  # dry_run=True
     if "SSP_dev" not in scenario.model:
         engage_updates._correct_balance_td_efficiencies(scenario)
         engage_updates._correct_coal_ppl_u_efficiencies(scenario)
@@ -216,14 +123,13 @@ def build(
     else:
         modify_baseyear_bounds(scenario)
         last_hist_year = scenario.par("historical_activity")["year_act"].max()
-        modify_industry_demand(scenario, last_hist_year)
-        add_new_ind_hist_act(scenario, [last_hist_year])
+        modify_industry_demand(scenario, last_hist_year, iea_data_path)
+        add_new_ind_hist_act(scenario, [last_hist_year], iea_data_path)
     add_emission_accounting(scenario)
 
     # scenario.commit("no changes")
     add_coal_lowerbound_2020(scenario)
     add_cement_bounds_2020(scenario, "high_temp")
-    add_cement_bounds_2020(scenario, "low_temp")
 
     # Market penetration adjustments
     # NOTE: changing demand affects the market penetration
