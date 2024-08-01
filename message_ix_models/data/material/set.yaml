@@ -62,6 +62,13 @@ common:
     add:
     - 2010
 
+  technology:
+    remove:
+    # remove deprecated technologies that are sometimes still existent in older MESSAGEix-GLOBIOM versions
+    - hp_gas_i
+    - sp_coal_I
+    - hp_gas_rc
+
 generic:
   commodity:
     add:
