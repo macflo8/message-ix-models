@@ -88,6 +88,19 @@ def gen_data_methanol_new(scenario: "Scenario") -> Dict[str, pd.DataFrame]:
     )
     pars_dict["demand"] = df_final
 
+    scen_rel_set = scenario.set("relation")
+    for par in ["activity", "upper", "lower"]:
+        df_rel = pars_dict[f"relation_{par}"]
+        df_rel = df_rel[df_rel["relation"].isin(scen_rel_set.values)]
+        exc_rels = [
+            i for i in df_rel["relation"].unique() if i not in scen_rel_set.values
+        ]
+        print(
+            f"following relations are dropped from relation_{par} of methanol input "
+            f"data because they are not compatible with the scenario: {exc_rels}"
+        )
+        pars_dict[f"relation_{par}"] = df_rel
+
     return pars_dict
 
 
