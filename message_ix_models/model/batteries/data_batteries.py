@@ -1,17 +1,10 @@
-import importlib
-
 import ixmp
-import matplotlib.pyplot as plt
-import message_data
-import message_data.tools.post_processing.iamc_report_hackathon
 import message_ix
 import pandas as pd
 from data_mats_global import gen_mats_data
 from data_trade_glb import gen_trade_data
-from ixmp.reporting import configure
 from message_data.tools.utilities import get_optimization_years
 from message_ix import make_df
-from message_ix.reporting import Reporter
 
 COMMENTS = "resource_1xAgrades_100xBgrades_80USD_EV150USD_cheapB_10y"
 carbon_tax = 80
@@ -22,6 +15,7 @@ transport_CO2_tax = 150
 # Mileage expessed in tkm/year
 lifetime = 10
 mileage = 15
+
 # %% md
 # Set-up model
 # Specify filename and name of sheet for data extraction
@@ -34,6 +28,24 @@ SHEET_HIST = "Capacities"
 TRADE_SHEET = "GLB_trade"
 HISTORY = [2015, 2020]
 model_horizon = [2030, 2040, 2050, 2060, 2070, 2080, 2090, 2100]
+regions = imports_input["node_loc"].unique()
+MOD = "MaterialsTransport_Global"
+prtp_techs = [
+    "ELC_100",
+    "HFC_ptrp",
+    "IAHe_ptrp",
+    "IAHm_ptrp",
+    "ICAe_ffv",
+    "ICAm_ptrp",
+    "ICE_conv",
+    "ICE_L_ptrp",
+    "ICE_nga",
+    "ICH_chyb",
+    "IGH_ghyb",
+    "PHEV_ptrp",
+]
+years_df = scenario.vintage_and_active_years()
+vintage_years, act_years = years_df["year_vtg"], years_df["year_act"]
 
 
 def set_up_ixmp_platform(mp):
@@ -52,20 +64,19 @@ def set_up_ixmp_platform(mp):
 def get_base_scenario():
     mp = ixmp.Platform()
     scen = "Baseline"
-    mod = "MaterialsTransport_Global"
-    # %%
-    baseline = message_ix.Scenario(mp, model=mod, scenario=scen)
-    # %%
+
+    baseline = message_ix.Scenario(mp, model=MOD, scenario=scen)
+
     scenario = baseline.clone(
-        mod, COMMENTS, "Looking for reference", shift_first_model_year=2025
+        MOD, COMMENTS, "Looking for reference", shift_first_model_year=2025
     )  # , keep_solution = False)
-    # %%
+
     # scenario = baseline.clone(mod,
     #                           'Materials_Transport_2020_resources_km',
     #                           'change years',
     #                           keep_solution = False)
     scenario = baseline.clone(
-        mod,
+        MOD,
         COMMENTS,
         "Looking for reference",
         shift_first_model_year=2025,
@@ -112,9 +123,6 @@ def add_model_structure(scenario):
     unique_trade = trade_techs["technology"].unique().tolist()
     scenario.add_set("technology", unique_trade)
 
-
-    years_df = scenario.vintage_and_active_years()
-    vintage_years, act_years = years_df["year_vtg"], years_df["year_act"]
     mode = ["all"]
     scenario.add_set("mode", mode)
     scenario.commit("Data_prep")
@@ -165,11 +173,6 @@ def generate_trade_io(scenario):
 
 # %% md
 ## Replace exogenuous LIBs demand with initial activity up
-# %%
-regions = imports_input["node_loc"].unique()
-# %%
-scenario.check_out()
-# %%
 df = pd.read_excel(
     "/home/lorenzou/eptex/indecol/USERS/Lorenzo/message_ix/inputs/Battery_growth.xlsx",
     sheet_name="Sheet1",
@@ -180,7 +183,7 @@ df = df.transpose()
 df = df.T.reset_index().T
 batt_size = df.interpolate(method="linear", axis=0).round()
 batt_size = batt_size.reset_index()
-# %%
+
 model_horizon = [
     2025,
     2030,
@@ -196,7 +199,6 @@ model_horizon = [
     2100,
     2110,
 ]
-# %%
 scenario.add_par("interestrate", model_horizon, value=0.05, unit="-")
 
 
@@ -243,8 +245,8 @@ def add_hist_data(scenario, regions):
 
 # %% md
 ## adding constraints to supply chains
-# %% md
 def add_supply_constraints(regions, scenario, unique_techs):
+    # IS IN MD IN NOTEBOOK, so maybe not needed?
     unique_techs_LIBs = []
     for tech in unique_techs:
         if "LIB" in tech or "anode" in tech or "cathode" in tech:
@@ -315,6 +317,7 @@ def add_supply_constraints(regions, scenario, unique_techs):
 
 # %% md
 # Adding data to the parameter
+# TODO: find out how 'shares' was defined
 for region in regions:
     df = pd.DataFrame(
         {
@@ -370,12 +373,10 @@ def add_carbon_price():
     scenario.commit("diagnostic carbon price added")
 
 
-# %%
-scenario.check_out()
 # %% md
 ## Estimate LIB cost
-# %% md
 def estimate_lib_cost():
+    # WAS SET AS MARKDOWN in notebook, so maybe not needed?
     cost_lib = batt_size.copy()
     costs = [250, 250, 200, 200, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150]
     # costs = [350, 350, 300, 300, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250]
@@ -395,7 +396,7 @@ def estimate_lib_cost():
         "ELC_100",
         "ELC_100",
     ]
-    # %% md
+
     cost_phev = batt_size.copy()
     cost_phev[0] = 20
     PHEV_fake = [
@@ -414,33 +415,32 @@ def estimate_lib_cost():
         "PHEV_ptrp",
         "PHEV_ptrp",
     ]
-    # %% md
+
     cost_evs = scenario.par("inv_cost")
     cost_evs = cost_evs[cost_evs["technology"] == "ELC_100"]
-    # %% md
+
     cost_evs_phev = scenario.par("inv_cost")
     cost_evs_phev = cost_evs_phev[cost_evs_phev["technology"] == "PHEV_ptrp"]
-    # %% md
+
     cost_lib["cost"] = costs
     cost_lib[0] = cost_lib[0] * cost_lib["cost"]
     cost_lib = cost_lib.rename(columns={"index": "year_vtg", 0: "lib_cost"})
     cost_lib["technology"] = EV_fake
-    # %% md
+
     cost_phev["cost"] = costs
     cost_phev[0] = cost_phev[0] * cost_phev["cost"]
     cost_phev = cost_phev.rename(columns={"index": "year_vtg", 0: "lib_cost"})
     cost_phev["technology"] = PHEV_fake
-    # %% md
+
     cost_evs = pd.merge(cost_evs, cost_lib, how="left").fillna(0)
     cost_evs["value"] = cost_evs["value"] - cost_evs["lib_cost"]
     cost_evs = cost_evs.drop(["lib_cost", "cost"], axis=1)
-    # %% md
+
     cost_evs_phev = pd.merge(cost_evs_phev, cost_phev, how="left").fillna(0)
     cost_evs_phev["value"] = cost_evs_phev["value"] - cost_evs_phev["lib_cost"]
     cost_evs_phev = cost_evs_phev.drop(["lib_cost", "cost"], axis=1)
-    # %% md
-    results = pd.concat([cost_evs, cost_evs_phev], axis=0)
 
+    results = pd.concat([cost_evs, cost_evs_phev], axis=0)
 
 
 # %% md
@@ -474,28 +474,15 @@ def update_costs():
 # %% md
 ## Try to change capacity factor of EVs
 def change_cap_factor():
-    prtp_techs = [
-        "ELC_100",
-        "HFC_ptrp",
-        "IAHe_ptrp",
-        "IAHm_ptrp",
-        "ICAe_ffv",
-        "ICAm_ptrp",
-        "ICE_conv",
-        "ICE_L_ptrp",
-        "ICE_nga",
-        "ICH_chyb",
-        "IGH_ghyb",
-        "PHEV_ptrp",
-    ]
-    # %% md
-    ptrp_techs2 = ["ELC_100", "PHEV_ptrp"]
+    ptrp_techs2 = ["ELC_100", "PHEV_ptrp"]  # is MD in notebook
 
     cap_factor_new = scenario.par("capacity_factor")
     cap_factor_new = cap_factor_new[cap_factor_new["technology"].isin(prtp_techs)]
 
     cap_factor_new["mileage_multiplier"] = mileage / cap_factor_new["value"]
-    cap_factor_new["value"] = cap_factor_new["value"] * cap_factor_new["mileage_multiplier"]
+    cap_factor_new["value"] = (
+        cap_factor_new["value"] * cap_factor_new["mileage_multiplier"]
+    )
     cap_factor_new = cap_factor_new.drop(["mileage_multiplier"], axis=1)
 
     cap_factor_update = scenario.par("capacity_factor")
@@ -513,7 +500,9 @@ def change_cap_factor():
     technical_lifetime_evs["value"] = (
         technical_lifetime_evs["value"] * technical_lifetime_evs["lifetime_multiplier"]
     )
-    technical_lifetime_evs = technical_lifetime_evs.drop(["lifetime_multiplier"], axis=1)
+    technical_lifetime_evs = technical_lifetime_evs.drop(
+        ["lifetime_multiplier"], axis=1
+    )
 
     tech_life = scenario.par("technical_lifetime")
     tech_life.update(technical_lifetime_evs)
@@ -524,15 +513,14 @@ def change_cap_factor():
     scenario.add_par("capacity_factor", cap_factor_new)
 
     scenario.commit("changing lifetime and km")
+
+
 # %% md
 ## Addon here
-# %%
-scenario.check_out()
-# %%
 years_df = scenario.vintage_and_active_years()
 years_df = years_df.loc[years_df["year_vtg"] >= 2020]
 years_df_final = pd.DataFrame(columns=["year_vtg", "year_act"])
-# %%
+
 for vtg in years_df["year_vtg"].unique():
     years_df_temp = years_df.loc[years_df["year_vtg"] == vtg]
     years_df_temp = years_df_temp.loc[years_df["year_act"] < vtg + lifetime]
@@ -891,7 +879,6 @@ def add_co2_accounting():
 
     scenario.check_out()
     scenario.add_par("tax_emission", tax_emission)
-
     scenario.commit("added CO2 emissions_transport")
 
 
