@@ -144,4 +144,4 @@ def gen_mats_data(file, sheet_main, scenario):
     for k, v in results.items():
         scenario.add_par(k, v)
 
-    return results, scenario
+    return scenario
