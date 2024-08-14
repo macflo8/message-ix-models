@@ -9,21 +9,23 @@ from message_ix_models.model.material.data_ammonia_new import gen_all_NH3_fert
 from message_ix_models.model.material.data_cement import gen_data_cement
 from message_ix_models.model.material.data_generic import gen_data_generic
 from message_ix_models.model.material.data_methanol_new import gen_data_methanol_new
+from message_ix_models.model.material.data_other_industry import (
+    add_coal_lowerbound_2020,
+    add_elec_lowerbound_2020,
+    add_new_ind_hist_act,
+    modify_demand_and_hist_activity,
+    modify_industry_demand,
+    remove_baseyear_bounds,
+)
 from message_ix_models.model.material.data_petro import gen_data_petro_chemicals
 from message_ix_models.model.material.data_power_sector import gen_data_power_sector
 from message_ix_models.model.material.data_steel import gen_data_steel
 from message_ix_models.model.material.data_util import (
     add_ccs_technologies,
     add_cement_bounds_2020,
-    add_coal_lowerbound_2020,
-    add_elec_lowerbound_2020,
     add_emission_accounting,
-    add_new_ind_hist_act,
     calibrate_for_SSPs,
     maybe_add_water_tecs,
-    modify_baseyear_bounds,
-    modify_demand_and_hist_activity,
-    modify_industry_demand,
 )
 from message_ix_models.model.material.util import read_config
 from message_ix_models.util import (
@@ -121,7 +123,7 @@ def build(
     if old_calib:
         modify_demand_and_hist_activity(scenario)
     else:
-        modify_baseyear_bounds(scenario)
+        remove_baseyear_bounds(scenario)
         last_hist_year = scenario.par("historical_activity")["year_act"].max()
         modify_industry_demand(scenario, last_hist_year, iea_data_path)
         add_new_ind_hist_act(scenario, [last_hist_year], iea_data_path)
