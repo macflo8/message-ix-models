@@ -26,6 +26,8 @@ from message_ix_models.util import (
 )
 
 if TYPE_CHECKING:
+    from message_ix import Scenario
+
     from message_ix_models import Context
 
 
@@ -245,7 +247,7 @@ def read_iea_tec_map(tec_map_fname: str) -> pd.DataFrame:
     return MAP
 
 
-def add_emission_accounting(scen):
+def add_emission_accounting(scen: "Scenario") -> None:
     """
 
     Parameters
@@ -606,7 +608,7 @@ def add_emission_accounting(scen):
     # scen.commit("add methanol CO2_industry")
 
 
-def add_cement_bounds_2020(sc, temp):
+def add_cement_bounds_2020(sc: "Scenario", temp: str) -> None:
     """Set lower and upper bounds for gas and oil as a calibration for 2020"""
 
     final_resid = pd.read_csv(
@@ -1055,7 +1057,7 @@ def read_timeseries(
 
 def read_rel(
     scenario: message_ix.Scenario, material: str, ssp: str or None, filename: str
-):
+) -> pd.DataFrame:
     """
     Read relation_* type parameter data for specific industry
 
@@ -1145,7 +1147,9 @@ def gen_te_projections(
     return inv_cost, fix_cost
 
 
-def get_ssp_soc_eco_data(context: "Context", model: str, measure: str, tec):
+def get_ssp_soc_eco_data(
+    context: "Context", model: str, measure: str, tec
+) -> pd.DataFrame:
     """
     Function to update scenario GDP and POP timeseries to SSP 3.0
     and format to MESSAGEix "bound_activity_*" DataFrame
@@ -1235,20 +1239,22 @@ def get_thermal_industry_emi_coefficients(scen: message_ix.Scenario) -> pd.DataF
     return df_joined
 
 
-def get_furnace_inputs(scen: message_ix.Scenario, first_year) -> pd.DataFrame:
-    """
-    Pulls existing parametrization for input coefficients
-     of given Scenario instance and returns only for technologies
-     with "furnace" in the name
+def get_furnace_inputs(scen: message_ix.Scenario, first_year: int) -> pd.DataFrame:
+    """Return existing parametrization for input coefficients of given Scenario instance
+     and returns only for technologies with "furnace" in the name
 
     Parameters
     ----------
     scen: message_ix.Scenario
         Scenario instance to pull input parameter from
+    first_year: int
+        Earliest year for which furnace input parameter should be retrieved
 
     Returns
     -------
     pd.DataFrame
+        a dataframe of furnace input paramter with index
+        ["node_loc", "year_act", "commodity", "technology"]
     """
     furn_tecs = "furnace"
     df_furn = scen.par("input")
@@ -1305,7 +1311,7 @@ def calculate_furnace_non_co2_emi_coeff(
     return df_final_new
 
 
-def calibrate_t_d_tecs(scenario):
+def calibrate_t_d_tecs(scenario: "Scenario"):
     # ------------------------------------------------------
     # Revise t_d historical_activity and 2020 activity bounds
     # ------------------------------------------------------
@@ -1412,7 +1418,14 @@ def calibrate_t_d_tecs(scenario):
         scenario.add_par("bound_activity_up", update_df)
 
 
-def maybe_add_water_tecs(scenario):
+def maybe_add_water_tecs(scenario: "Scenario") -> None:
+    """Adds water supply technologies that are required for the Materials build
+
+    Parameters
+    ----------
+    scenario: .Scenario
+        instance to check for water technologies and add if missing
+    """
     if "water_supply" not in list(scenario.set("level")):
         scenario.check_out()
         # add missing water tecs
@@ -1429,7 +1442,16 @@ def maybe_add_water_tecs(scenario):
         scenario.commit("add missing water tecs")
 
 
-def calibrate_for_SSPs(scenario):
+def calibrate_for_SSPs(scenario: "Scenario") -> None:
+    """Adjust technologies activity bounds and growth constraints to avoid base year
+    infeasibilities in year 2020. Specifically developed for the SSP_dev scenarios,
+    where most technology activities are fixed in 2020.
+
+    Parameters
+    ----------
+    scenario: .Scenario
+        instance to apply parameter changes to
+    """
     add_elec_i_ini_act(scenario)
 
     # prohibit electric clinker kilns in first decade
@@ -1485,7 +1507,10 @@ def calibrate_for_SSPs(scenario):
 def add_elec_i_ini_act(scenario: message_ix.Scenario) -> None:
     """
     Adds initial_activity_up parameter for "elec_i" technology by copying
-    value from "hp_el_i" technology
+    value from "hp_el_i" technology.
+
+    This is required since elec_i "historical_activity" is set to 0 during Materials
+    build
 
     Parameters
     ----------
