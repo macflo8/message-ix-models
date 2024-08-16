@@ -150,11 +150,6 @@ def build(
     if "R12_CHN" in nodes:
         add_elec_lowerbound_2020(scenario)
 
-    # i_feed demand is zero creating a zero division error during MACRO calibration
-    scenario.check_out()
-    scenario.remove_set("sector", "i_feed")
-    scenario.commit("i_feed removed from sectors.")
-
     df = scenario.par(
         "bound_activity_lo",
         filters={"node_loc": "R12_RCPA", "technology": "sp_el_I", "year_act": 2020},
