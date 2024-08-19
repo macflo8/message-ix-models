@@ -13,6 +13,7 @@ from message_ix_models.model.material.data_other_industry import (
     add_coal_lowerbound_2020,
     add_elec_lowerbound_2020,
     add_new_ind_hist_act,
+    get_hist_act,
     modify_demand_and_hist_activity,
     modify_industry_demand,
     remove_baseyear_bounds,
@@ -21,7 +22,6 @@ from message_ix_models.model.material.data_petro import gen_data_petro_chemicals
 from message_ix_models.model.material.data_power_sector import gen_data_power_sector
 from message_ix_models.model.material.data_steel import gen_data_steel
 from message_ix_models.model.material.data_util import (
-    add_ccs_technologies,
     add_cement_bounds_2020,
     add_emission_accounting,
     calibrate_for_SSPs,
@@ -96,7 +96,10 @@ def add_data(scenario, dry_run=False):
 
 
 def build(
-    scenario: message_ix.Scenario, old_calib: bool, iea_data_path=None
+    scenario: message_ix.Scenario,
+    old_calib: bool,
+    iea_data_path: str = None,
+    version: str = "default",
 ) -> message_ix.Scenario:
     """Set up materials accounting on `scenario`."""
 
@@ -159,7 +162,17 @@ def build(
     scenario.commit("remove sp_el_I min bound on RCPA in 2020")
 
     calibrate_for_SSPs(scenario)
+    if version == "0.181":
+        from share_constraints_constants import add_coal_constraint
 
+        # add share constraint for coal_i based on 2020 IEA data
+        add_coal_constraint(scenario)
+        # overwrite non-Materials industry technology calibration
+        calib_data = get_hist_act(scenario, years=[1990, 1995, 2000, 2010, 2015, 2020])
+        scenario.check_out()
+        for k, v in calib_data.items():
+            scenario.add_par(k, v)
+        scenario.commit("new calibration of other industry")
     return scenario
 
 
