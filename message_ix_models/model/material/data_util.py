@@ -208,8 +208,7 @@ def map_iea_db_to_msg_regs(df_iea: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_iea_tec_map(tec_map_fname: str) -> pd.DataFrame:
-    """
-    reads mapping file and returns relevant columns needed for technology mapping
+    """Reads mapping file and returns relevant columns needed for technology mapping
 
     Parameters
     ----------
@@ -248,60 +247,98 @@ def read_iea_tec_map(tec_map_fname: str) -> pd.DataFrame:
 
 
 def add_emission_accounting(scen: "Scenario") -> None:
-    """
+    """Add industry emission factors and related relations to scenario
+    that are not already added with data_*sector*.py modules
 
     Parameters
     ----------
-    scen
+    scen: .Scenario
+        instance to add industry emission accounting to
     """
     # (1) ******* Add non-CO2 gases to the relevant relations. ********
     # This is done by multiplying the input values and emission_factor
     # per year,region and technology.
 
-    tec_list_residual = scen.par("emission_factor")["technology"].unique()
-    tec_list_input = scen.par("input")["technology"].unique()
-
-    # The technology list to retrieve the input values
+    tec_list_residual = ["biomass_i", "coal_i", "foil_i", "gas_i", "hp_gas_i", "loil_i"]
+    # TODO: read from set.yaml instead
     tec_list_input = [
-        i for i in tec_list_input if (("furnace" in i) | ("hp_gas_" in i))
+        "furnace_foil_steel",
+        "furnace_loil_steel",
+        "furnace_biomass_steel",
+        "furnace_ethanol_steel",
+        "furnace_methanol_steel",
+        "furnace_gas_steel",
+        "furnace_coal_steel",
+        "furnace_elec_steel",
+        "furnace_h2_steel",
+        "furnace_foil_cement",
+        "furnace_loil_cement",
+        "furnace_biomass_cement",
+        "furnace_ethanol_cement",
+        "furnace_methanol_cement",
+        "furnace_gas_cement",
+        "furnace_coal_cement",
+        "furnace_elec_cement",
+        "furnace_h2_cement",
+        "furnace_coal_aluminum",
+        "furnace_foil_aluminum",
+        "furnace_loil_aluminum",
+        "furnace_ethanol_aluminum",
+        "furnace_biomass_aluminum",
+        "furnace_methanol_aluminum",
+        "furnace_gas_aluminum",
+        "furnace_elec_aluminum",
+        "furnace_h2_aluminum",
+        "furnace_coke_petro",
+        "furnace_coal_petro",
+        "furnace_foil_petro",
+        "furnace_loil_petro",
+        "furnace_ethanol_petro",
+        "furnace_biomass_petro",
+        "furnace_methanol_petro",
+        "furnace_gas_petro",
+        "furnace_elec_petro",
+        "furnace_h2_petro",
+        "furnace_coke_refining",
+        "furnace_coal_refining",
+        "furnace_foil_refining",
+        "furnace_loil_refining",
+        "furnace_ethanol_refining",
+        "furnace_biomass_refining",
+        "furnace_methanol_refining",
+        "furnace_gas_refining",
+        "furnace_elec_refining",
+        "furnace_h2_refining",
+        "furnace_coal_resins",
+        "furnace_foil_resins",
+        "furnace_loil_resins",
+        "furnace_ethanol_resins",
+        "furnace_biomass_resins",
+        "furnace_methanol_resins",
+        "furnace_gas_resins",
+        "furnace_elec_resins",
+        "furnace_h2_resins",
     ]
-    # tec_list_input.remove("hp_gas_i")
-    # tec_list_input.remove("hp_gas_rc")
-
-    # The technology list to retreive the emission_factors
-    tec_list_residual = [
-        i
-        for i in tec_list_residual
-        if (
-            (
-                ("biomass_i" in i)
-                | ("coal_i" in i)
-                | ("foil_i" in i)
-                | ("gas_i" in i)
-                | ("hp_gas_i" in i)
-                | ("loil_i" in i)
-                | ("meth_i" in i)
-            )
-            & ("imp" not in i)
-            & ("trp" not in i)
-        )
-    ]
-
+    s_info = ScenarioInfo(scen)
+    modelyears = s_info.Y
     # Retrieve the input values
-    input_df = scen.par("input", filters={"technology": tec_list_input})
+    input_df = scen.par(
+        "input",
+        filters={"technology": tec_list_input, "year_act": modelyears},
+    )
     input_df.drop(
         ["node_origin", "commodity", "level", "time", "time_origin", "unit"],
         axis=1,
         inplace=True,
     )
     input_df.drop_duplicates(inplace=True)
-    input_df = input_df[input_df["year_act"] >= 2020]
 
     # Retrieve the emission factors
-
-    emission_df = scen.par("emission_factor", filters={"technology": tec_list_residual})
+    emission_df = scen.par(
+        "emission_factor",
+        filters={"technology": tec_list_residual, "year_act": modelyears},
+    )
     emission_df.drop(["unit", "mode"], axis=1, inplace=True)
-    emission_df = emission_df[emission_df["year_act"] >= 2020]
     emission_df.drop_duplicates(inplace=True)
 
     # Mapping to multiply the emission_factor with the corresponding
@@ -368,8 +405,6 @@ def add_emission_accounting(scen: "Scenario") -> None:
     emissions = [e for e in emission_df["emission"].unique()]
     remove_from_list_if_exists("CO2_industry", emissions)
     remove_from_list_if_exists("CO2_res_com", emissions)
-    # emissions.remove("CO2_industry")
-    # emissions.remove("CO2_res_com")
 
     for t in emission_df["technology"].unique():
         for e in emissions:
@@ -407,28 +442,69 @@ def add_emission_accounting(scen: "Scenario") -> None:
         scen.commit("Non-CO2 Emissions accounting for industry technologies added.")
 
     # ***** (2) Add the CO2 emission factors to CO2_Emission relation. ******
-    # We dont need to add ammonia/fertilier production here. Because there are
+    # We don't need to add ammonia/fertilizer production here. Because there are
     # no extra process emissions that need to be accounted in emissions relation.
     # CCS negative emission_factor are added to this relation in gen_data_ammonia.py.
     # Emissions from refining sector are categorized as 'CO2_transformation'.
 
-    tec_list = scen.par("emission_factor")["technology"].unique()
     tec_list_materials = [
-        i
-        for i in tec_list
-        if (
-            ("steel" in i)
-            | ("aluminum" in i)
-            | ("petro" in i)
-            | ("cement" in i)
-            | ("ref" in i)
-        )
+        "clinker_dry_cement",
+        "clinker_wet_cement",
+        "clinker_dry_ccs_cement",
+        "clinker_wet_ccs_cement",
+        "DUMMY_limestone_supply_cement",
+        "atm_distillation_ref",
+        "vacuum_distillation_ref",
+        "hydrotreating_ref",
+        "catalytic_cracking_ref",
+        "visbreaker_ref",
+        "coking_ref",
+        "catalytic_reforming_ref",
+        "hydro_cracking_ref",
+        "soderberg_aluminum",
+        "prebake_aluminum",
+        "MTO_petro",
+        "furnace_foil_steel",
+        "furnace_loil_steel",
+        "furnace_biomass_steel",
+        "furnace_methanol_steel",
+        "furnace_gas_steel",
+        "furnace_coal_steel",
+        "furnace_foil_cement",
+        "furnace_loil_cement",
+        "furnace_biomass_cement",
+        "furnace_methanol_cement",
+        "furnace_gas_cement",
+        "furnace_coal_cement",
+        "furnace_coal_aluminum",
+        "furnace_foil_aluminum",
+        "furnace_loil_aluminum",
+        "furnace_biomass_aluminum",
+        "furnace_methanol_aluminum",
+        "furnace_gas_aluminum",
+        "furnace_coke_petro",
+        "furnace_coal_petro",
+        "furnace_foil_petro",
+        "furnace_loil_petro",
+        "furnace_biomass_petro",
+        "furnace_methanol_petro",
+        "furnace_gas_petro",
+        "furnace_coke_refining",
+        "furnace_coal_refining",
+        "furnace_foil_refining",
+        "furnace_loil_refining",
+        "furnace_biomass_refining",
+        "furnace_methanol_refining",
+        "furnace_gas_refining",
+        "sinter_steel",
+        "pellet_steel",
+        "bf_steel",
+        "bof_steel",
+        "eaf_steel",
+        "finishing_steel",
+        "DUMMY_limestone_supply_steel",
     ]
-    for elem in ["refrigerant_recovery", "replacement_so2", "SO2_scrub_ref"]:
-        remove_from_list_if_exists(elem, tec_list_materials)
-    # tec_list_materials.remove("refrigerant_recovery")
-    # tec_list_materials.remove("replacement_so2")
-    # tec_list_materials.remove("SO2_scrub_ref")
+
     emission_factors = scen.par(
         "emission_factor", filters={"technology": tec_list_materials, "emission": "CO2"}
     )
@@ -549,28 +625,18 @@ def add_emission_accounting(scen: "Scenario") -> None:
     # Remove transport related technologies from CF4_Emissions
 
     scen.check_out()
-
+    trp_tecs = [i for i in scen.set("technology") if i.endswith("_trp")]
     CF4_trp_Emissions = scen.par(
-        "relation_activity", filters={"relation": "CF4_Emission"}
+        "relation_activity",
+        filters={"relation": "CF4_Emission", "technology": trp_tecs},
     )
-    list_tec_trp = [
-        cf4_emi
-        for cf4_emi in CF4_trp_Emissions["technology"].unique()
-        if "trp" in cf4_emi
-    ]
-    CF4_trp_Emissions = CF4_trp_Emissions[
-        CF4_trp_Emissions["technology"].isin(list_tec_trp)
-    ]
-
     scen.remove_par("relation_activity", CF4_trp_Emissions)
 
     # Remove transport related technologies from CF4_alm_red and add aluminum tecs.
 
-    CF4_red = scen.par("relation_activity", filters={"relation": "CF4_alm_red"})
-    list_tec_trp = [
-        cf4_emi for cf4_emi in CF4_red["technology"].unique() if "trp" in cf4_emi
-    ]
-    CF4_red = CF4_red[CF4_red["technology"].isin(list_tec_trp)]
+    CF4_red = scen.par(
+        "relation_activity", filters={"relation": "CF4_alm_red", "technology": trp_tecs}
+    )
 
     scen.remove_par("relation_activity", CF4_red)
 
@@ -589,23 +655,6 @@ def add_emission_accounting(scen: "Scenario") -> None:
 
     scen.add_par("relation_activity", CF4_red_add)
     scen.commit("CF4 relations corrected.")
-
-    # copy CO2_cc values to CO2_industry for conventional methanol tecs
-    # scen.check_out()
-    # meth_arr = ["meth_ng", "meth_coal", "meth_coal_ccs", "meth_ng_ccs"]
-    # df = scen.par("relation_activity",
-    # filters={"relation": "CO2_cc", "technology": meth_arr})
-    # df = df.rename({"year_rel": "year_vtg"}, axis=1)
-    # values = dict(zip(df["technology"], df["value"]))
-    #
-    # df_em = scen.par("emission_factor",
-    # filters={"emission": "CO2_transformation", "technology": meth_arr})
-    # for i in meth_arr:
-    #     df_em.loc[df_em["technology"] == i, "value"] = values[i]
-    # df_em["emission"] = "CO2_industry"
-    #
-    # scen.add_par("emission_factor", df_em)
-    # scen.commit("add methanol CO2_industry")
 
 
 def add_cement_bounds_2020(sc: "Scenario", temp: str) -> None:
