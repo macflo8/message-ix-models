@@ -72,7 +72,7 @@ def create_bare(context, regions, dry_run):
 )
 @click.option(
     "--iea_data_path",
-    default="P:ene.model\\IEA_database\\Florian\\",
+    default="P:ene.model\\IEA_database\\Florian\\REV2022_allISO_IEA.parquet",
     help="File path for external data input",
 )
 @click.option("--tag", default="", help="Suffix to the scenario name")
@@ -85,9 +85,21 @@ def create_bare(context, regions, dry_run):
     "--update_costs",
     default=False,
 )
+@click.option(
+    "--version",
+    default="default",
+)
 @click.pass_obj
 def build_scen(
-    context, datafile, iea_data_path, tag, mode, scenario_name, old_calib, update_costs
+    context,
+    datafile,
+    iea_data_path,
+    tag,
+    mode,
+    scenario_name,
+    old_calib,
+    update_costs,
+    version,
 ):
     """Build a scenario.
 
@@ -96,7 +108,7 @@ def build_scen(
     memory, i.e. ``jvmargs=["-Xmx16G"]``.
     """
 
-    if not os.path.isfile(iea_data_path + "REV2022_allISO_IEA.parquet") & ~old_calib:
+    if not os.path.isfile(iea_data_path) & ~old_calib:
         log.warning(
             "The proprietary data file: 'REV2022_allISO_IEA.parquet' based on IEA"
             "Extended Energy Balances required for the build with --old_calib=False"
