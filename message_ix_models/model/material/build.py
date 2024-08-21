@@ -27,6 +27,7 @@ from message_ix_models.model.material.data_util import (
     calibrate_for_SSPs,
     maybe_add_water_tecs,
 )
+from message_ix_models.model.material.share_constraints import add_coal_constraint
 from message_ix_models.model.material.util import read_config
 from message_ix_models.util import (
     add_par_data,
@@ -161,17 +162,17 @@ def build(
     scenario.commit("remove sp_el_I min bound on RCPA in 2020")
 
     calibrate_for_SSPs(scenario)
-    if version == "0.181":
-        from share_constraints_constants import add_coal_constraint
-
-        # add share constraint for coal_i based on 2020 IEA data
-        add_coal_constraint(scenario)
-        # overwrite non-Materials industry technology calibration
-        calib_data = get_hist_act(scenario, years=[1990, 1995, 2000, 2010, 2015, 2020])
-        scenario.check_out()
-        for k, v in calib_data.items():
-            scenario.add_par(k, v)
-        scenario.commit("new calibration of other industry")
+    # add share constraint for coal_i based on 2020 IEA data
+    add_coal_constraint(scenario)
+    # overwrite non-Materials industry technology calibration
+    calib_data = get_hist_act(
+        scenario, [1990, 1995, 2000, 2010, 2015, 2020], iea_data_path
+    )
+    scenario.check_out()
+    for k, v in calib_data.items():
+        scenario.add_par(k, v)
+    scenario.commit("new calibration of other industry")
+    add_coal_constraint(scenario)
     return scenario
 
 

@@ -72,8 +72,14 @@ def create_bare(context, regions, dry_run):
 )
 @click.option(
     "--iea_data_path",
-    default="P:ene.model\\IEA_database\\Florian\\REV2022_allISO_IEA.parquet",
-    help="File path for external data input",
+    default="P:/ene.model/IEA_database/Florian/S3_IEA_REV2024_FiltISO_TJ_BIO.parquet",
+    type=click.Choice(
+        [
+            "P:ene.model\\IEA_database\\Florian\\REV2022_allISO_IEA.parquet",
+            "P:/ene.model/IEA_database/Florian/S3_IEA_REV2024_FiltISO_TJ_BIO.parquet",
+        ]
+    ),
+    help="File path for IEA energy balances file required for new model calibration",
 )
 @click.option("--tag", default="", help="Suffix to the scenario name")
 @click.option(
@@ -110,9 +116,9 @@ def build_scen(
 
     if not os.path.isfile(iea_data_path) & ~old_calib:
         log.warning(
-            "The proprietary data file: 'REV2022_allISO_IEA.parquet' based on IEA"
-            "Extended Energy Balances required for the build with --old_calib=False"
-            " cannot be found in the given location. Aborting build..."
+            "The proprietary data file based on IEA Extended Energy Balances required"
+            "for the build with --old_calib=False cannot be found in the given"
+            "location. Aborting build..."
         )
         return
     import message_ix
@@ -158,6 +164,7 @@ def build_scen(
                 ),
                 old_calib=old_calib,
                 iea_data_path=iea_data_path,
+                version=version,
             )
         # Set the latest version as default
         scenario.set_as_default()
