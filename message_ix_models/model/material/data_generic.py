@@ -299,7 +299,9 @@ def gen_data_generic(scenario, dry_run=False):
     )
     results["relation_activity"].append(
         add_ind_therm_link_relations(
-            config["technology"]["add"], yv_ya["year_act"].unique(), nodes
+            [t.id for t in config["technology"]["add"]],
+            yv_ya["year_act"].unique(),
+            nodes,
         )
     )
     results = {par_name: pd.concat(dfs) for par_name, dfs in results.items()}
