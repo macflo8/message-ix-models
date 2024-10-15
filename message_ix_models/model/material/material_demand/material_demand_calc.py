@@ -502,7 +502,7 @@ def gen_demand_petro(scenario, chemical, gdp_elasticity_2020, gdp_elasticity_203
 
     df_melt = df_demand.melt(ignore_index=False).reset_index()
 
-    level = "demand" if chemical == "HVC" else "final_material"
+    level = "demand" if chemical in ["HVC", "methanol"] else "final_material"
 
     return make_df(
         "demand",
