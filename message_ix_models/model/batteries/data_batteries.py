@@ -28,9 +28,10 @@ SHEET_HIST = "Capacities"
 TRADE_SHEET = "GLB_trade"
 HISTORY = [2015, 2020]
 model_horizon = [2030, 2040, 2050, 2060, 2070, 2080, 2090, 2100]
+horizon = get_optimization_years(scenario)
 regions = imports_input["node_loc"].unique()
 MOD = "MaterialsTransport_Global"
-prtp_techs = [
+PRTP_TECHS = [
     "ELC_100",
     "HFC_ptrp",
     "IAHe_ptrp",
@@ -130,9 +131,10 @@ def add_model_structure(scenario):
 
 # %% md
 ## Read input data from Excel files
-scenario = gen_mats_data(FILENAME, sheet_name, scenario)
+def add_battery_data():
+    scenario = gen_mats_data(FILENAME, sheet_name, scenario)
 
-scenario.commit("tecno_economic_mats")
+    scenario.commit("tecno_economic_mats")
 
 
 def generate_trade_io(scenario):
@@ -337,7 +339,6 @@ scenario.commit(comment="Define parameters for minimumn co hydroxide supply from
 # %% md
 ## Add carbon price
 def add_carbon_price():
-    horizon = get_optimization_years(scenario)
     tax_emission_df = {
         "node": "World",
         "type_emission": "TCE",
@@ -477,7 +478,7 @@ def change_cap_factor():
     ptrp_techs2 = ["ELC_100", "PHEV_ptrp"]  # is MD in notebook
 
     cap_factor_new = scenario.par("capacity_factor")
-    cap_factor_new = cap_factor_new[cap_factor_new["technology"].isin(prtp_techs)]
+    cap_factor_new = cap_factor_new[cap_factor_new["technology"].isin(PRTP_TECHS)]
 
     cap_factor_new["mileage_multiplier"] = mileage / cap_factor_new["value"]
     cap_factor_new["value"] = (
@@ -491,7 +492,7 @@ def change_cap_factor():
 
     technical_lifetime_evs = scenario.par("technical_lifetime")
     technical_lifetime_evs = technical_lifetime_evs[
-        technical_lifetime_evs["technology"].isin(prtp_techs)
+        technical_lifetime_evs["technology"].isin(PRTP_TECHS)
     ]
 
     technical_lifetime_evs["lifetime_multiplier"] = (
@@ -830,13 +831,13 @@ def add_ressource_volume(scenario):
 # %% md
 ## Add accounting of CO2 emissions from transport as a separate set
 ## Also add tax on those CO2 emissions from LDVs
-def add_co2_accounting():
+def add_co2_accounting(scenario):
     scenario.add_set("type_tec", "transport")
 
     df = scenario.par("input")
 
     unique = pd.DataFrame()
-    for tech in prtp_techs:
+    for tech in PRTP_TECHS:
         x = df[df["technology"].str.contains(tech)]
         unique = unique._append(x, ignore_index=True)
 
@@ -869,7 +870,7 @@ def add_co2_accounting():
     # add exponential growing carbon price of 80 USD2010/tCO2 in 2040
     # add carbon price
     tax_emission = make_df(
-        tax_emission_df,
+        **tax_emission_df,
         value=transport_CO2_tax
         * (44 / 12)
         / 1.10774
